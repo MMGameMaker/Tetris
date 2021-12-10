@@ -79,12 +79,6 @@ public class BoardController : MonoBehaviour
     [SerializeField]
     private GameObject piecePrefabs;
 
-    private Cell[] boardCells;
-
-    public List<Cell> emptyCellsList = new List<Cell>();
-
-    private SetRandomValue setRandomComponent;
-
     private void Awake()
     {
         GameManager.Instance.OnGameStateChange += BoardHandlerOnStateChange;

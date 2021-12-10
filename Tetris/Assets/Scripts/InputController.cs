@@ -18,7 +18,7 @@ public class InputController : MonoBehaviour
     private BoardController.eInputDirection inputdirection;
     private void Awake()
     {
-        boardController = GetComponent<BoardController>();
+        
     }
 
     // Start is called before the first frame update

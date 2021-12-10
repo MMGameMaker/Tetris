@@ -6,138 +6,175 @@ using UnityEngine;
 public class TetrisBlock : MonoBehaviour
 {
     public Vector3 rotationPoint;
-    public float previousTime;
-    public float fallTime = 0.5f;
-    public static int height = 20;
-    public static int width = 12;
 
-    private static Transform[,] grid = new Transform[width, height];
+    private float lastFall;
+
+    private float lastKeyDow;
+    private float timeKeyPressed;
+
+    
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        lastFall = Time.time;
+        lastKeyDow = Time.time;
+        timeKeyPressed = Time.time;
+        if (IsValidGridPos())
+        {
+            InsertOnGrid();
+        }
+        else
+        {
+            Debug.Log("Killed on Start");
+            GameOver();
+        }
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (GetKey(KeyCode.LeftArrow))
         {
-            this.transform.position += new Vector3(-1, 0, 0);
-            if(!ValidMove())
-                this.transform.position += new Vector3(1, 0, 0);
+            TryChangePos(new Vector3(-1, 0, 0));
         }
-
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        else if (GetKey(KeyCode.RightArrow))
         {
-            this.transform.position += new Vector3(1, 0, 0);
-            if (!ValidMove())
-                this.transform.position += new Vector3(-1, 0, 0);
+            TryChangePos(new Vector3(1, 0, 0));
         }
-
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        else if (GetKey(KeyCode.UpArrow))
         {
-            transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), 90);
-            if(!ValidMove())
-                transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), -90);
-        }
+            transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), -90);
 
-        if (Time.time - previousTime > (Input.GetKey(KeyCode.DownArrow) ? fallTime / 10 : fallTime))
-        {
-            this.transform.position += new Vector3(0, -1, 0);
-            if (!ValidMove())
+            if (IsValidGridPos())
             {
-                this.transform.position += new Vector3(0, 1, 0);
-                AddToGrid();
-                CheckForLines();
-                this.enabled = false;
-                FindObjectOfType<SpawnTetromino>().SpawnNewBlock();
+                UpdateGrid();
             }
-
-            previousTime = Time.time;
-        }
-    }
-
-    private void CheckForLines()
-    {
-        for(int i = height-1; i >=0; i--)
-        {
-            if (HasLine(i))
+            else
             {
-                DeleteLine(i);
-                RowDown(i);
+                transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), 90);
             }
         }
+        else if (GetKey(KeyCode.DownArrow) || (Time.time - lastFall) >= 0.8f )
+        {
+            FallGroup();
+        }
+
+
+
     }
 
-    private bool HasLine(int i)
+    private bool IsValidGridPos()
     {
-        for(int j =0; j<width; j++)
+        foreach (Transform child in transform)
         {
-            if (grid[j, i] == null)
+            Vector2 v = GridControl.RoundVector2(child.position);
+
+            if (!GridControl.InsideBorder(v))
+            {
                 return false;
+            }
+
+            if (GridControl.grid[(int)v.x, (int)v.y] != null &&
+                GridControl.grid[(int)v.x, (int)v.y].parent != transform)
+            {
+                return false;
+            }
         }
 
         return true;
     }
 
-    private void DeleteLine(int i)
+    private void UpdateGrid()
     {
-        for (int j = 0; j < width; j++)
+        //remove old children from grid
+        for(int y = 0; y< GridControl.height; y++)
         {
-            Destroy(grid[j, i].gameObject);
-
-            grid[i, j] = null;
-        }
-    }
-
-    private void RowDown(int i)
-    {
-        for(int y = i; y<height-1; y++)
-        {
-            for(int j = 0; j <width; j++)
+            for(int x = 0; x< GridControl.width; x ++)
             {
-                if(grid[j, y+1] != null)
+                if(GridControl.grid[x,y] != null &&
+                   GridControl.grid[x, y].parent == transform)
                 {
-                    grid[j, y] = grid[j, y+1];
-                    grid[j, y+1] = null;
-                    grid[j, y].transform.position += new Vector3(0, -1, 0);
+                    GridControl.grid[x, y] = null;
                 }
             }
         }
+
+        InsertOnGrid();
     }
 
-    private void AddToGrid()
+    private void InsertOnGrid()
     {
-        foreach(Transform children in transform)
+        // add new children to grid
+        foreach (Transform child in transform)
         {
-            int roundedX = Mathf.RoundToInt(children.transform.position.x + 9.5f);
-            int roundedY = Mathf.RoundToInt(children.transform.position.y + 9.5f);
-
-            grid[roundedX, roundedY] = children;
-
-            Debug.Log(roundedX + " , " + roundedY);
+            Vector2 v = GridControl.RoundVector2(child.position);
+            GridControl.grid[(int)v.x, (int)v.y] = child;
         }
     }
 
-    bool ValidMove()
+    private void TryChangePos(Vector3 v)
     {
-        foreach (Transform children in transform)
+        //modify position
+        transform.position += v;
+
+        //check if valid
+        if (IsValidGridPos())
         {
-            int roundedX = Mathf.RoundToInt(children.transform.position.x + 9.5f);
-            int roundedY = Mathf.RoundToInt(children.transform.position.y + 9.5f);
-
-            if (roundedX<0 || roundedX > width - 1 || roundedY < 0 || roundedY > height - 1)
-            {
-                return false;
-            }
-
-            if (grid[roundedX, roundedY] != null)
-                return false;
+            UpdateGrid();
         }
-        return true;
+        else
+        {
+            transform.position -= v;
+        }
     }
 
+    private void FallGroup()
+    {
+        transform.position += new Vector3(0, -1, 0);
+
+        if (IsValidGridPos())
+        {
+            UpdateGrid();
+        }
+        else
+        {
+            transform.position += new Vector3(0, 1, 0);
+
+            GridControl.DeleteFullRows();
+
+            FindObjectOfType<SpawnTetromino>().SpawnNewBlock();
+
+
+            //disable script
+            enabled = false;
+        }
+
+        lastFall = Time.time;
+    }
+
+    private bool GetKey(KeyCode key)
+    {
+        bool keyDown = Input.GetKeyDown(key);
+        bool pressed = Input.GetKey(key) && Time.time - lastKeyDow > 0.5f && Time.time - timeKeyPressed > 0.05f;
+
+        if (keyDown)
+        {
+            lastKeyDow = Time.time;
+        }
+
+        if (pressed)
+        {
+            timeKeyPressed = Time.time;
+        }
+
+        return keyDown || pressed;
+    }
+
+    private void GameOver()
+    {
+        Debug.Log("GAME OVER!");
+    }
 
 }
