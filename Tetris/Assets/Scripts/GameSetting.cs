@@ -17,10 +17,9 @@ public class GameSettings : ScriptableObject
         public const float SlowestDuration = 0.8f;
 
         //Fastest falling piece duration
-        public const float FastestDuration = 0.3f;
+        public const float FastestDuration = 0.05f;
 
-        // spawn or merge piece aniamtion duration
-        public const float SpawningDuration = 0.1f;
+        public const int ScoreToFatest = 200;
 
         //Delay time to check deviceOrientation
         public const float DelayCheck = 1f;
@@ -38,7 +37,7 @@ public class GameSettings : ScriptableObject
 
     public class DataFieldString
     {
-        public const string BEST_SCORE = "BestScore";
+        public const string BEST_SCORE = "TetrisBestScore";
     }
 
 }

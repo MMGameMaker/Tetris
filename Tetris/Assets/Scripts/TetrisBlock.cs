@@ -3,14 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum eInputControl
+{
+    None,
+    Rotate,
+    LeftMove,
+    RightMove,
+    PushDown,
+}
+
+
 public class TetrisBlock : MonoBehaviour
 {
     public Vector3 rotationPoint;
 
     private float lastFall;
-
     private float lastKeyDow;
     private float timeKeyPressed;
+
+    private eInputControl inputdirection;
+    private bool isPushDown;
+    private bool couldRotate;
+
+    private Touch touch;
+    private Vector2 startTouchPos;
+    private Vector2 lastMoveTouchPos;
+    private Vector2 endTouchPos;
+    private Vector2 touchDirection;
+
+    
 
     // Start is called before the first frame update
     void Start()
@@ -28,20 +49,28 @@ public class TetrisBlock : MonoBehaviour
             GameOver();
         }
 
+        inputdirection = eInputControl.None;
+        isPushDown = false;
+        couldRotate = true;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (GetKey(KeyCode.LeftArrow))
+        if (GameManager.Instance.CurrentGameStates != GameManager.eGameStateS.PLAYING)
+            return;
+
+        inputdirection = GetTouch();
+
+        if (GetKey(KeyCode.LeftArrow) || inputdirection == eInputControl.LeftMove)
         {
             TryChangePos(new Vector3(-1, 0, 0));
         }
-        else if (GetKey(KeyCode.RightArrow))
+        else if (GetKey(KeyCode.RightArrow) || inputdirection == eInputControl.RightMove)
         {
             TryChangePos(new Vector3(1, 0, 0));
         }
-        else if (GetKey(KeyCode.UpArrow))
+        else if (GetKey(KeyCode.UpArrow) || inputdirection == eInputControl.Rotate)
         {
             transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), -90);
 
@@ -54,10 +83,93 @@ public class TetrisBlock : MonoBehaviour
                 transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), 90);
             }
         }
-        else if (GetKey(KeyCode.DownArrow) || (Time.time - lastFall) >= 0.8f )
+
+        if(Time.time - lastFall >= ((GetKey(KeyCode.DownArrow) || isPushDown) ?
+            GameSettings.Constants.FastestDuration : GridControl.Instance.FallDuration))
         {
             FallGroup();
         }
+    }
+
+    private eInputControl GetTouch()
+    {
+        if (Input.touchCount > 0)
+        {
+            touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                if (isPushDown)
+                {
+                    isPushDown = false;
+                    couldRotate = false;
+                }
+                    
+
+                startTouchPos = touch.position;
+                lastMoveTouchPos = touch.position;
+                lastKeyDow = Time.time;
+            }
+            else if (touch.phase == TouchPhase.Moved && !isPushDown)
+            {
+                touchDirection = touch.position - lastMoveTouchPos;
+                float xDir = touchDirection.x;
+                float yDir = touchDirection.y;
+
+                if (Mathf.Abs(xDir) >= 50)
+                {
+                    lastMoveTouchPos = touch.position;
+                    if (xDir > 0)
+                        return eInputControl.RightMove;
+                    else if (xDir < 0)
+                        return eInputControl.LeftMove;
+                }
+                else if (yDir <= - 80f)
+                {
+                    isPushDown = true;
+                    return eInputControl.PushDown;
+                }
+                 
+            }
+            else if (touch.phase == TouchPhase.Ended)
+            {
+                endTouchPos = touch.position;
+                touchDirection = endTouchPos - startTouchPos;
+
+                if (Time.time - lastKeyDow <= 0.2f && touchDirection.magnitude <= 45)
+                {
+                    if (couldRotate)
+                        return eInputControl.Rotate;
+                    else
+                        couldRotate = true;
+                }
+                Debug.Log(endTouchPos);
+            }
+
+            //boardController.IsGetTouchInput = false;
+        }
+        else if (inputdirection == eInputControl.PushDown)
+            return eInputControl.PushDown;
+     
+        return eInputControl.None;
+    }
+
+    private bool GetKey(KeyCode key)
+    {
+        bool keyDown = Input.GetKeyDown(key);
+        bool pressed = Input.GetKey(key) && Time.time - lastKeyDow > 0.5f && Time.time - timeKeyPressed > 0.05f;
+
+        if (keyDown)
+        {
+            lastKeyDow = Time.time;
+        }
+
+        if (pressed)
+        {
+            timeKeyPressed = Time.time;
+        }
+
+        return keyDown || pressed;
     }
 
     private bool IsValidGridPos()
@@ -77,7 +189,6 @@ public class TetrisBlock : MonoBehaviour
                 return false;
             }
         }
-
         return true;
     }
 
@@ -95,7 +206,6 @@ public class TetrisBlock : MonoBehaviour
                 }
             }
         }
-
         InsertOnGrid();
     }
 
@@ -146,24 +256,6 @@ public class TetrisBlock : MonoBehaviour
         }
 
         lastFall = Time.time;
-    }
-
-    private bool GetKey(KeyCode key)
-    {
-        bool keyDown = Input.GetKeyDown(key);
-        bool pressed = Input.GetKey(key) && Time.time - lastKeyDow > 0.5f && Time.time - timeKeyPressed > 0.05f;
-
-        if (keyDown)
-        {
-            lastKeyDow = Time.time;
-        }
-
-        if (pressed)
-        {
-            timeKeyPressed = Time.time;
-        }
-
-        return keyDown || pressed;
     }
 
     private void GameOver()

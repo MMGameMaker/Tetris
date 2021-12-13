@@ -26,6 +26,13 @@ public class GridControl : MonoBehaviour
         get => isBusy;
     }
 
+    private float fallDuration;
+    public float FallDuration
+    {
+        get => fallDuration;
+        set { fallDuration = value; }
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -41,6 +48,7 @@ public class GridControl : MonoBehaviour
     private void Start()
     {
         this.score = 0;
+        FallDuration = GameSettings.Constants.SlowestDuration;
     }
 
     private void GameStateChangeHandler(GameManager.eGameStateS currentGameSate)
@@ -57,12 +65,10 @@ public class GridControl : MonoBehaviour
                 Time.timeScale = 0;
                 break;
             case GameManager.eGameStateS.GAMEOVER:
-               
+                Time.timeScale = 0;
                 break;
         }
     }
-
-   
 
     public Vector2 RoundVector2(Vector2 piecePos)
     {
