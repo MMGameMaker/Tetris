@@ -12,8 +12,6 @@ public class TetrisBlock : MonoBehaviour
     private float lastKeyDow;
     private float timeKeyPressed;
 
-    
-
     // Start is called before the first frame update
     void Start()
     {
@@ -60,18 +58,15 @@ public class TetrisBlock : MonoBehaviour
         {
             FallGroup();
         }
-
-
-
     }
 
     private bool IsValidGridPos()
     {
         foreach (Transform child in transform)
         {
-            Vector2 v = GridControl.RoundVector2(child.position);
+            Vector2 v = GridControl.Instance.RoundVector2(child.position);
 
-            if (!GridControl.InsideBorder(v))
+            if (!GridControl.Instance.InsideBorder(v))
             {
                 return false;
             }
@@ -109,7 +104,7 @@ public class TetrisBlock : MonoBehaviour
         // add new children to grid
         foreach (Transform child in transform)
         {
-            Vector2 v = GridControl.RoundVector2(child.position);
+            Vector2 v = GridControl.Instance.RoundVector2(child.position);
             GridControl.grid[(int)v.x, (int)v.y] = child;
         }
     }
@@ -142,10 +137,9 @@ public class TetrisBlock : MonoBehaviour
         {
             transform.position += new Vector3(0, 1, 0);
 
-            GridControl.DeleteFullRows();
+            GridControl.Instance.DeleteFullRows();
 
             FindObjectOfType<SpawnTetromino>().SpawnNewBlock();
-
 
             //disable script
             enabled = false;
@@ -175,6 +169,7 @@ public class TetrisBlock : MonoBehaviour
     private void GameOver()
     {
         Debug.Log("GAME OVER!");
+        GameManager.Instance.CurrentGameStates = GameManager.eGameStateS.GAMEOVER;
     }
 
 }

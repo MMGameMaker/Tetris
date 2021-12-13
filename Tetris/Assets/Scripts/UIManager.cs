@@ -40,7 +40,6 @@ public class UIManager : MonoBehaviour
         //Register for score change and best score change event
         EventDispatcher.Instance.RegisterListener(GameSettings.EventID.ScoreChange, (param) => ChangeScoreText((int)param));
         EventDispatcher.Instance.RegisterListener(GameSettings.EventID.BestScoreChange, (param) => ChangeBestScoreText((int)param));
-        //EventDispatcher.Instance.RegisterListener(GameSettings.EventID.TurnPointGain, (param) => ShowPointGainPopup((int)param));
     }
 
     // Start is called before the first frame update

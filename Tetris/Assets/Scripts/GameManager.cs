@@ -27,13 +27,9 @@ public class GameManager : MonoBehaviour
         get => this.currentGameSates;
         set
         {
-            if (value != currentGameSates)
-            {
-                lastGameStates = currentGameSates;
-                this.currentGameSates = value;
-                OnGameStateChange.Invoke(currentGameSates);
-                Debug.Log(currentGameSates);
-            }
+            this.currentGameSates = value;
+            OnGameStateChange.Invoke(currentGameSates);
+            Debug.Log(currentGameSates); 
         }
     }
 
@@ -55,12 +51,14 @@ public class GameManager : MonoBehaviour
         }
         Instance = this;
 
-        this.CurrentGameStates = eGameStateS.SETUP;
+        
     }
 
     // Start is called before the first frame update
     void Start()
     {
+        this.CurrentGameStates = eGameStateS.SETUP;
+
         orientation = Input.deviceOrientation;
     }
 
@@ -94,7 +92,7 @@ public class GameManager : MonoBehaviour
                 break;
         }
 
-        yield return new WaitForSeconds(GameSettings.DelayCheck);
+        yield return new WaitForSeconds(GameSettings.Constants.DelayCheck);
 
     }
 
