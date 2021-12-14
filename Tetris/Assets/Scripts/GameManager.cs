@@ -50,8 +50,6 @@ public class GameManager : MonoBehaviour
             Destroy(Instance.gameObject);
         }
         Instance = this;
-
-        
     }
 
     // Start is called before the first frame update
@@ -71,6 +69,14 @@ public class GameManager : MonoBehaviour
     public void StartGame()
     {
         this.CurrentGameStates = GameManager.eGameStateS.PLAYING;
+    }
+
+    public void RestartGame()
+    {
+        GridControl.Instance.ClearAll();
+        GridControl.Instance.StartNewGame();
+        this.CurrentGameStates = GameManager.eGameStateS.PLAYING;
+        EventDispatcher.Instance.PostEvent(GameSettings.EventID.Restart);
     }
 
     IEnumerator CheckForChange()

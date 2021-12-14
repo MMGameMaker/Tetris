@@ -26,12 +26,19 @@ public class GridControl : MonoBehaviour
         get => isBusy;
     }
 
+    private int rowDeleting;
+
+    public int RowDeleting { get => rowDeleting; }
+
     private float fallDuration;
     public float FallDuration
     {
         get => fallDuration;
         set { fallDuration = value; }
     }
+
+    [SerializeField]
+    SpawnTetromino spawner;
 
     private void Awake()
     {
@@ -42,13 +49,19 @@ public class GridControl : MonoBehaviour
         Instance = this;
 
         GameManager.Instance.OnGameStateChange += GameStateChangeHandler;
-
     }
 
     private void Start()
     {
+        StartNewGame();
+    }
+
+    public void StartNewGame()
+    {
         this.score = 0;
+        rowDeleting = 0;
         FallDuration = GameSettings.Constants.SlowestDuration;
+        spawner.StartGame();
     }
 
     private void GameStateChangeHandler(GameManager.eGameStateS currentGameSate)
@@ -95,13 +108,14 @@ public class GridControl : MonoBehaviour
         return true;
     }
 
-    public void DeleteFullRows()
+    public IEnumerator DeleteFullRows()
     {
         for (int y = 0; y < height; y++)
         {
             if (IsRowFull(y))
             {
-                DeleteRow(y);
+                StartCoroutine(DeleteRow(y));
+                yield return new WaitWhile(() => IsBusy);
                 DecreaseRowAbove(y + 1);
                 --y;
             }
@@ -109,13 +123,23 @@ public class GridControl : MonoBehaviour
     }
 
     //destroy the row at y line
-    public void DeleteRow(int y)
+    public IEnumerator DeleteRow(int y)
     {
-        for (int x = 0; x < width; x++)
+        this.isBusy = true;
+        this.rowDeleting++;
+
+        for (int x = 0; x < width/2; x++)
         {
-            Destroy(grid[x, y].gameObject);
-            grid[x, y] = null;
+            Destroy(grid[width / 2 - 1 - x, y].gameObject);
+            Destroy(grid[width / 2 + x, y].gameObject);
+            grid[width / 2 - 1 - x, y] = null;
+            grid[width / 2 + x, y] = null;
+
+            yield return new WaitForSeconds(0.05f);
         }
+
+        this.isBusy = false;
+        this.rowDeleting--;
 
         Score += width;
 
@@ -142,6 +166,21 @@ public class GridControl : MonoBehaviour
                 grid[x, y - 1].transform.position += new Vector3(0, -1, 0);
             }
 
+        }
+    }
+
+    public void ClearAll()
+    {
+        for(int y = 0; y < height; y++)
+        {
+            for(int x = 0; x < width; x++)
+            {
+                if (grid[x, y] != null)
+                {
+                    Destroy(grid[x, y].gameObject);
+                    grid[x, y] = null;
+                }
+            }
         }
     }
 }

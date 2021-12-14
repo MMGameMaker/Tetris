@@ -12,13 +12,12 @@ public enum eInputControl
     PushDown,
 }
 
-
 public class TetrisBlock : MonoBehaviour
 {
     public Vector3 rotationPoint;
 
     private float lastFall;
-    private float lastKeyDow;
+    private float lastKeyDown;
     private float timeKeyPressed;
 
     private eInputControl inputdirection;
@@ -31,13 +30,11 @@ public class TetrisBlock : MonoBehaviour
     private Vector2 endTouchPos;
     private Vector2 touchDirection;
 
-    
-
     // Start is called before the first frame update
     void Start()
     {
         lastFall = Time.time;
-        lastKeyDow = Time.time;
+        lastKeyDown = Time.time;
         timeKeyPressed = Time.time;
         if (IsValidGridPos())
         {
@@ -58,6 +55,9 @@ public class TetrisBlock : MonoBehaviour
     void Update()
     {
         if (GameManager.Instance.CurrentGameStates != GameManager.eGameStateS.PLAYING)
+            return;
+
+        if (GridControl.Instance.RowDeleting > 0)
             return;
 
         inputdirection = GetTouch();
@@ -83,9 +83,14 @@ public class TetrisBlock : MonoBehaviour
                 transform.RotateAround(transform.TransformPoint(rotationPoint), new Vector3(0, 0, 1), 90);
             }
         }
+        
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            isPushDown = !isPushDown;
+        }
 
         if(Time.time - lastFall >= ((GetKey(KeyCode.DownArrow) || isPushDown) ?
-            GameSettings.Constants.FastestDuration : GridControl.Instance.FallDuration))
+            0.02 : GridControl.Instance.FallDuration))
         {
             FallGroup();
         }
@@ -105,10 +110,9 @@ public class TetrisBlock : MonoBehaviour
                     couldRotate = false;
                 }
                     
-
                 startTouchPos = touch.position;
                 lastMoveTouchPos = touch.position;
-                lastKeyDow = Time.time;
+                lastKeyDown = Time.time;
             }
             else if (touch.phase == TouchPhase.Moved && !isPushDown)
             {
@@ -129,14 +133,22 @@ public class TetrisBlock : MonoBehaviour
                     isPushDown = true;
                     return eInputControl.PushDown;
                 }
-                 
+                else if (yDir >= 50)
+                {
+                    lastMoveTouchPos = touch.position;
+                    if (couldRotate)
+                        return eInputControl.Rotate;
+                    else
+                        couldRotate = true;
+                }
             }
+            /*
             else if (touch.phase == TouchPhase.Ended)
             {
                 endTouchPos = touch.position;
                 touchDirection = endTouchPos - startTouchPos;
 
-                if (Time.time - lastKeyDow <= 0.2f && touchDirection.magnitude <= 45)
+                if (Time.time - lastKeyDown <= 0.2f && touchDirection.magnitude <= 45)
                 {
                     if (couldRotate)
                         return eInputControl.Rotate;
@@ -145,8 +157,7 @@ public class TetrisBlock : MonoBehaviour
                 }
                 Debug.Log(endTouchPos);
             }
-
-            //boardController.IsGetTouchInput = false;
+            */
         }
         else if (inputdirection == eInputControl.PushDown)
             return eInputControl.PushDown;
@@ -157,11 +168,11 @@ public class TetrisBlock : MonoBehaviour
     private bool GetKey(KeyCode key)
     {
         bool keyDown = Input.GetKeyDown(key);
-        bool pressed = Input.GetKey(key) && Time.time - lastKeyDow > 0.5f && Time.time - timeKeyPressed > 0.05f;
+        bool pressed = Input.GetKey(key) && Time.time - lastKeyDown > 0.15f && Time.time - timeKeyPressed > 0.02f;
 
         if (keyDown)
         {
-            lastKeyDow = Time.time;
+            lastKeyDown = Time.time;
         }
 
         if (pressed)
@@ -208,7 +219,6 @@ public class TetrisBlock : MonoBehaviour
         }
         InsertOnGrid();
     }
-
     private void InsertOnGrid()
     {
         // add new children to grid
@@ -234,7 +244,6 @@ public class TetrisBlock : MonoBehaviour
             transform.position -= v;
         }
     }
-
     private void FallGroup()
     {
         transform.position += new Vector3(0, -1, 0);
@@ -247,9 +256,9 @@ public class TetrisBlock : MonoBehaviour
         {
             transform.position += new Vector3(0, 1, 0);
 
-            GridControl.Instance.DeleteFullRows();
+            GridControl.Instance.StartCoroutine("DeleteFullRows");
 
-            FindObjectOfType<SpawnTetromino>().SpawnNewBlock();
+            FindObjectOfType<SpawnTetromino>().StartCoroutine("SpawnNewBlock");
 
             //disable script
             enabled = false;
@@ -260,8 +269,6 @@ public class TetrisBlock : MonoBehaviour
 
     private void GameOver()
     {
-        Debug.Log("GAME OVER!");
         GameManager.Instance.CurrentGameStates = GameManager.eGameStateS.GAMEOVER;
     }
-
 }

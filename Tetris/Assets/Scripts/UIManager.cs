@@ -40,13 +40,13 @@ public class UIManager : MonoBehaviour
         //Register for score change and best score change event
         EventDispatcher.Instance.RegisterListener(GameSettings.EventID.ScoreChange, (param) => ChangeScoreText((int)param));
         EventDispatcher.Instance.RegisterListener(GameSettings.EventID.BestScoreChange, (param) => ChangeBestScoreText((int)param));
+        EventDispatcher.Instance.RegisterListener(GameSettings.EventID.Restart, (param) => StartNewGame());
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        ChangeScoreText(0);
-        ChangeBestScoreText(PlayerPrefs.GetInt(GameSettings.DataFieldString.BEST_SCORE, 0));
+        StartNewGame();
     }
 
     // Update is called once per frame
@@ -55,11 +55,16 @@ public class UIManager : MonoBehaviour
         
     }
 
+    private void StartNewGame()
+    {
+        ChangeScoreText(0);
+        ChangeBestScoreText(PlayerPrefs.GetInt(GameSettings.DataFieldString.BEST_SCORE, 0));
+    }
+
     public void StartBtnClieckHandler()
     {
         GameManager.Instance.CurrentGameStates = GameManager.eGameStateS.PLAYING;
     }
-
 
     private void UIHandlerOnGameStateChange(GameManager.eGameStateS currentGameSate)
     {
@@ -97,9 +102,9 @@ public class UIManager : MonoBehaviour
     {
         this.bestScoreText.text = newBestScore.ToString();
     }
-
     public void LoadNewGame()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        GameManager.Instance.CurrentGameStates = GameManager.eGameStateS.PLAYING;
     }
 }
